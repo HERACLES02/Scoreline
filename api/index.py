@@ -557,12 +557,73 @@ class GridClient:
         return {
             "provider": "grid",
             "configured": True,
+            "available": True,
             "raw": json_loads(payload),
             "note": "GRID response is attached raw until the account-specific schema is mapped.",
         }
 
 
+class CitoClient:
+    def __init__(self) -> None:
+        self.api_key = os.getenv("CITO_API_KEY")
+        self.base_url = os.getenv("CITO_BASE_URL", "https://api.citoapi.com/api/v1").rstrip("/")
+        self.match_stats_template = os.getenv("CITO_MATCH_STATS_URL_TEMPLATE")
+        self.auth_header = os.getenv("CITO_AUTH_HEADER", "x-api-key")
+        self.timeout = float(os.getenv("CITO_API_TIMEOUT", "8"))
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.api_key)
+
+    def match_stats(self, match: dict[str, Any]) -> dict[str, Any] | None:
+        if not self.enabled:
+            return None
+
+        url = self._match_stats_url(match)
+        if not url:
+            return None
+
+        try:
+            from urllib.request import Request
+
+            request_obj = Request(url, headers=self._headers())
+            with urlopen(request_obj, timeout=self.timeout) as response:
+                payload = response.read().decode("utf-8")
+        except (HTTPError, URLError, TimeoutError, ValueError):
+            return None
+
+        raw = json_loads(payload)
+        data = raw.get("data") if isinstance(raw, dict) and isinstance(raw.get("data"), dict) else raw
+        player_stats = extract_stat_rows(data) if isinstance(data, dict) else []
+        return {
+            "provider": "cito",
+            "configured": True,
+            "available": True,
+            "raw": raw,
+            "player_stats": player_stats,
+            "note": cito_note(match, bool(player_stats)),
+        }
+
+    def _headers(self) -> dict[str, str]:
+        if self.auth_header.lower() == "authorization":
+            return {"Authorization": f"Bearer {self.api_key}"}
+        return {self.auth_header: self.api_key}
+
+    def _match_stats_url(self, match: dict[str, Any]) -> str | None:
+        game_slug = cito_game_slug(match)
+        if self.match_stats_template:
+            return self.match_stats_template.format(match_id=match["id"], game=game_slug or "unknown")
+        if not game_slug:
+            return None
+        if game_slug == "lol":
+            return f"{self.base_url}/lol/games/{match['id']}/player-stats"
+        if game_slug == "cod":
+            return f"{self.base_url}/cod/matches/{match['id']}/player-stats?includeMaps=true"
+        return f"{self.base_url}/{game_slug}/matches/{match['id']}/player-stats"
+
+
 grid_client = GridClient()
+cito_client = CitoClient()
 
 
 def normalize_pandascore_match(match: dict[str, Any], include_detail: bool = False) -> dict[str, Any]:
@@ -705,6 +766,33 @@ def should_try_grid(match: dict[str, Any]) -> bool:
     return any(token in game for token in ("counter", "cs", "dota"))
 
 
+def cito_game_slug(match: dict[str, Any]) -> str | None:
+    game = match.get("game", "").lower()
+    if "league of legends" in game or game == "lol":
+        return "lol"
+    if "dota" in game:
+        return "dota2"
+    if "call of duty" in game or game == "cod":
+        return "cod"
+    if "valorant" in game:
+        return "valorant"
+    if "rocket" in game:
+        return "rocketleague"
+    if "fortnite" in game:
+        return "fortnite"
+    if "apex" in game:
+        return "apex"
+    return None
+
+
+def cito_note(match: dict[str, Any], has_rows: bool) -> str:
+    if has_rows:
+        return "Cito returned player stat rows for this match."
+    if not cito_game_slug(match):
+        return "Cito is configured, but this game is not mapped to a Cito endpoint yet."
+    return "Cito returned data, but no generic player stat rows could be extracted."
+
+
 def _opponent_name(opponents: list[dict[str, Any]], index: int) -> dict[str, str | None]:
     try:
         opponent = opponents[index].get("opponent") or {}
@@ -844,7 +932,7 @@ def get_matches(status: str, game: str) -> tuple[list[dict[str, Any]], dict[str,
 
 def get_match_detail(match_id: str) -> dict[str, Any] | None:
     token = os.getenv("PANDASCORE_API_KEY")
-    cache_key = f"detail:{match_id}:{bool(token)}:{grid_client.enabled}"
+    cache_key = f"detail:{match_id}:{bool(token)}:{grid_client.enabled}:{cito_client.enabled}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -880,6 +968,16 @@ def get_match_detail(match_id: str) -> dict[str, Any] | None:
         "available": False,
         "note": "GRID is only queried for CS/Dota when GRID_API_KEY and GRID_MATCH_DETAIL_URL_TEMPLATE are set.",
     }
+    cito_stats = cito_client.match_stats(match)
+    match["stats"]["cito"] = cito_stats or {
+        "provider": "cito",
+        "configured": cito_client.enabled,
+        "available": False,
+        "note": "Cito is queried when CITO_API_KEY is set. Use CITO_MATCH_STATS_URL_TEMPLATE if PandaScore and Cito IDs do not match.",
+    }
+    if cito_stats and cito_stats.get("player_stats"):
+        existing = match["stats"].get("player_stats") or []
+        match["stats"]["player_stats"] = existing or cito_stats["player_stats"]
     cache.set(cache_key, match, 45)
     return match
 

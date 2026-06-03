@@ -21,6 +21,7 @@ Fast Flask scoreboard for esports matches, built to deploy on Vercel.
 - Lets logged-in users follow and unfollow teams
 - Fetches detailed PandaScore match data when available
 - Supports optional GRID detail calls for CS/Dota through environment configuration
+- Supports optional Cito detail calls for player-stat enrichment
 
 ## Local setup
 
@@ -53,6 +54,8 @@ DATABASE_URL=postgresql://user:password@host/database?sslmode=require
 SECRET_KEY=replace_with_a_long_random_secret
 GRID_API_KEY=your_grid_key_here
 GRID_MATCH_DETAIL_URL_TEMPLATE=https://example.grid.endpoint/matches/{match_id}
+CITO_API_KEY=your_cito_key_here
+CITO_MATCH_STATS_URL_TEMPLATE=https://api.citoapi.com/api/v1/{game}/matches/{match_id}/player-stats
 ```
 
 Keep `.env` private. It is ignored by Git.
@@ -97,6 +100,8 @@ Do not commit API keys. Keep them in Vercel's dashboard.
 For `DATABASE_URL`, use the pooled connection string from Supabase or Neon when available, and keep `sslmode=require` in the URL.
 
 PandaScore detailed stats depend on match/game coverage and your plan. Match pages show maps, rosters, and player stat rows when the API returns them. For GRID, set `GRID_API_KEY` and `GRID_MATCH_DETAIL_URL_TEMPLATE`; the template can use `{match_id}` and `{game}` placeholders.
+
+For Cito, set `CITO_API_KEY`. If PandaScore match IDs do not match Cito IDs, set `CITO_MATCH_STATS_URL_TEMPLATE` to the endpoint shape Cito gives you. The template can use `{match_id}` and `{game}` placeholders.
 
 See `VERCEL_DEPLOY.md` for the full deploy checklist.
 

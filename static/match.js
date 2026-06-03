@@ -19,6 +19,8 @@ const playerStatsWrap = document.querySelector("#playerStatsWrap");
 const playerStatsCount = document.querySelector("#playerStatsCount");
 const gridStatus = document.querySelector("#gridStatus");
 const gridNote = document.querySelector("#gridNote");
+const citoStatus = document.querySelector("#citoStatus");
+const citoNote = document.querySelector("#citoNote");
 
 function formatTime(value) {
   if (!value) return "TBD";
@@ -55,6 +57,7 @@ function renderStats() {
   renderRosters(stats.rosters || []);
   renderPlayerStats(stats.player_stats || []);
   renderGrid(stats.grid || {});
+  renderCito(stats.cito || {});
 }
 
 function renderMaps(games) {
@@ -167,6 +170,23 @@ function renderGrid(grid) {
   } else {
     gridStatus.textContent = "Not configured";
     gridNote.textContent = grid.note || "Set GRID_API_KEY and GRID_MATCH_DETAIL_URL_TEMPLATE to query GRID for CS/Dota.";
+  }
+}
+
+function renderCito(cito) {
+  if (cito.player_stats?.length) {
+    citoStatus.textContent = "Player stats";
+    citoNote.textContent = cito.note || "Cito returned player stat rows for this match.";
+  } else if (cito.raw) {
+    citoStatus.textContent = "Connected";
+    citoNote.textContent = cito.note || "Cito returned data for this match.";
+  } else if (cito.configured) {
+    citoStatus.textContent = "No data";
+    citoNote.textContent = cito.note || "Cito is configured but did not return data for this match.";
+  } else {
+    citoStatus.textContent = "Not configured";
+    citoNote.textContent =
+      cito.note || "Set CITO_API_KEY, and optionally CITO_MATCH_STATS_URL_TEMPLATE, to query Cito.";
   }
 }
 

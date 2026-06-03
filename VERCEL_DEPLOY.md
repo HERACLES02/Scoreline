@@ -18,6 +18,16 @@ GRID_MATCH_DETAIL_URL_TEMPLATE
 GRID_API_TIMEOUT
 ```
 
+Optional Cito variables:
+
+```text
+CITO_API_KEY
+CITO_BASE_URL
+CITO_MATCH_STATS_URL_TEMPLATE
+CITO_AUTH_HEADER
+CITO_API_TIMEOUT
+```
+
 Use your hosted Postgres pooled connection string for `DATABASE_URL`, with `sslmode=require`.
 
 ## Dashboard deploy
