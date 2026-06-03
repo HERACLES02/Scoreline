@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scoreline</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Esports scores</p>
+        <h1>Scoreline</h1>
+        <nav class="page-nav" aria-label="Primary">
+          <a href="/">Scores</a>
+          <a href="/profile">Profile</a>
+        </nav>
+      </div>
+      <div class="top-actions">
+        <div class="status-pill" id="providerStatus">Loading</div>
+        <div class="account-panel">
+          <div class="account-summary" id="accountSummary">Signed out</div>
+          <form class="auth-form" id="authForm">
+            <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
+            <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
+            <div class="auth-actions">
+              <button type="submit" data-mode="login">Login</button>
+              <button type="submit" data-mode="register">Register</button>
+            </div>
+          </form>
+          <button class="logout-button" type="button" id="logoutButton">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="controls" aria-label="Score filters">
+        <div class="tabs" role="tablist" aria-label="Match status">
+          <button class="tab active" type="button" data-status="live">Live</button>
+          <button class="tab" type="button" data-status="upcoming">Upcoming</button>
+          <button class="tab" type="button" data-status="results">Results</button>
+        </div>
+
+        <label class="game-filter">
+          <span>Game</span>
+          <select id="gameSelect">
+            {% for key, label in games.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </section>
+
+      <section class="score-layout">
+        <aside class="side-panel">
+          <div class="metric">
+            <span class="metric-label">Matches</span>
+            <strong id="matchCount">0</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Refresh</span>
+            <strong id="refreshRate">30s</strong>
+          </div>
+          <div class="source-note" id="sourceNote">
+            Waiting for scores.
+          </div>
+          <section class="discussion-panel" aria-live="polite">
+            <div class="discussion-head">
+              <span class="metric-label">Discussion</span>
+              <strong id="discussionCount">0</strong>
+            </div>
+            <h3 id="discussionTitle">Pick a match</h3>
+            <div class="comment-list" id="commentList">
+              <p class="empty-copy">Choose Discuss on any match.</p>
+            </div>
+            <form class="comment-form" id="commentForm">
+              <textarea id="commentBody" name="body" maxlength="1000" rows="4" placeholder="Add a match comment"></textarea>
+              <button type="submit">Post</button>
+            </form>
+          </section>
+        </aside>
+
+        <section class="matches" aria-live="polite">
+          <div class="section-head">
+            <h2 id="sectionTitle">Live matches</h2>
+            <button class="refresh-button" type="button" id="refreshButton">Refresh</button>
+          </div>
+          <div class="match-list" id="matchList"></div>
+        </section>
+      </section>
+    </main>
+
+    <template id="matchTemplate">
+      <article class="match-card">
+        <div class="match-meta">
+          <span class="game"></span>
+          <span class="league"></span>
+          <span class="time"></span>
+        </div>
+        <div class="teams">
+          <div class="team team-one">
+            <span class="team-mark"></span>
+            <span class="team-name"></span>
+          </div>
+          <div class="score">
+            <strong class="score-one">0</strong>
+            <span>:</span>
+            <strong class="score-two">0</strong>
+          </div>
+          <div class="team team-two">
+            <span class="team-mark"></span>
+            <span class="team-name"></span>
+          </div>
+        </div>
+        <div class="match-footer">
+          <span class="format"></span>
+          <div class="match-actions">
+            <button class="discuss" type="button">Discuss</button>
+            <a class="details-link">Details</a>
+            <a class="stream" target="_blank" rel="noreferrer">Watch</a>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

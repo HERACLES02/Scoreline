@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile - Scoreline</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Account</p>
+        <h1>Profile</h1>
+        <nav class="page-nav" aria-label="Primary">
+          <a href="/">Scores</a>
+          <a href="/profile">Profile</a>
+        </nav>
+      </div>
+      <div class="top-actions">
+        <div class="status-pill" id="providerStatus">Profile</div>
+        <div class="account-panel">
+          <div class="account-summary" id="accountSummary">Signed out</div>
+          <form class="auth-form" id="authForm">
+            <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
+            <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
+            <div class="auth-actions">
+              <button type="submit" data-mode="login">Login</button>
+              <button type="submit" data-mode="register">Register</button>
+            </div>
+          </form>
+          <button class="logout-button" type="button" id="logoutButton">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="profile-layout">
+        <aside class="side-panel">
+          <div class="metric">
+            <span class="metric-label">Comments</span>
+            <strong id="profileComments">0</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Teams</span>
+            <strong id="profileTeams">0</strong>
+          </div>
+          <div class="source-note" id="sourceNote">Login to view profile.</div>
+        </aside>
+
+        <section class="matches">
+          <div class="section-head">
+            <h2>Followed teams</h2>
+          </div>
+          <div class="follow-list" id="followList"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='profile.js') }}"></script>
+  </body>
+</html>

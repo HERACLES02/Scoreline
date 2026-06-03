@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if match %}{{ match.team_one.name }} vs {{ match.team_two.name }}{% else %}Match not found{% endif %} - Scoreline</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Match room</p>
+        <h1>Scoreline</h1>
+        <nav class="page-nav" aria-label="Primary">
+          <a href="/">Scores</a>
+          <a href="/profile">Profile</a>
+        </nav>
+      </div>
+      <div class="top-actions">
+        <div class="status-pill" id="providerStatus">Match</div>
+        <div class="account-panel">
+          <div class="account-summary" id="accountSummary">Signed out</div>
+          <form class="auth-form" id="authForm">
+            <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
+            <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
+            <div class="auth-actions">
+              <button type="submit" data-mode="login">Login</button>
+              <button type="submit" data-mode="register">Register</button>
+            </div>
+          </form>
+          <button class="logout-button" type="button" id="logoutButton">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      {% if not match %}
+        <section class="matches">
+          <div class="empty-state">Match not found.</div>
+        </section>
+      {% else %}
+        <section class="detail-layout">
+          <article class="match-hero">
+            <div class="match-meta">
+              <span class="game">{{ match.game }}</span>
+              <span>{{ match.league }} / {{ match.tournament }}</span>
+              <span>{{ match.status }}</span>
+            </div>
+            <div class="detail-teams">
+              <div class="detail-team">
+                <span class="team-mark">{{ match.team_one.name[:2].upper() }}</span>
+                <h2>{{ match.team_one.name }}</h2>
+                {% if match.team_one.id %}
+                  <button class="follow-button" type="button" data-team-id="{{ match.team_one.id }}" data-team-name="{{ match.team_one.name }}" data-game="{{ match.game }}">
+                    {% if match.team_one.followed %}Following{% else %}Follow{% endif %}
+                  </button>
+                {% endif %}
+              </div>
+              <div class="detail-score">
+                <strong>{{ match.score_one }}</strong>
+                <span>:</span>
+                <strong>{{ match.score_two }}</strong>
+              </div>
+              <div class="detail-team">
+                <span class="team-mark">{{ match.team_two.name[:2].upper() }}</span>
+                <h2>{{ match.team_two.name }}</h2>
+                {% if match.team_two.id %}
+                  <button class="follow-button" type="button" data-team-id="{{ match.team_two.id }}" data-team-name="{{ match.team_two.name }}" data-game="{{ match.game }}">
+                    {% if match.team_two.followed %}Following{% else %}Follow{% endif %}
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+            <div class="match-footer">
+              <span>{% if match.best_of %}Best of {{ match.best_of }}{% else %}Match{% endif %}</span>
+              <span id="detailStart">{{ match.starts_at or "TBD" }}</span>
+              {% if match.stream_url %}
+                <a class="stream" href="{{ match.stream_url }}" target="_blank" rel="noreferrer">Watch</a>
+              {% endif %}
+            </div>
+          </article>
+
+          <section class="stats-grid">
+            <article class="stats-panel">
+              <div class="section-head">
+                <h2>Maps & games</h2>
+                <span class="status-pill" id="statsCoverage">Stats</span>
+              </div>
+              <div class="source-note" id="coverageNote"></div>
+              <div class="map-list" id="mapList"></div>
+            </article>
+
+            <article class="stats-panel">
+              <div class="section-head">
+                <h2>Rosters</h2>
+              </div>
+              <div class="roster-grid" id="rosterGrid"></div>
+            </article>
+          </section>
+
+          <section class="stats-panel">
+            <div class="section-head">
+              <h2>Player stats</h2>
+              <span class="status-pill" id="playerStatsCount">0</span>
+            </div>
+            <div class="stats-table-wrap" id="playerStatsWrap"></div>
+          </section>
+
+          <section class="stats-panel">
+            <div class="section-head">
+              <h2>GRID data</h2>
+              <span class="status-pill" id="gridStatus">Not configured</span>
+            </div>
+            <div class="source-note" id="gridNote"></div>
+          </section>
+
+          <section class="matches discussion-main">
+            <div class="section-head">
+              <h2>Discussion</h2>
+              <span class="status-pill" id="discussionCount">0</span>
+            </div>
+            <div class="comment-list wide-comments" id="commentList"></div>
+            <form class="comment-form" id="commentForm">
+              <textarea id="commentBody" name="body" maxlength="1000" rows="4" placeholder="Login to comment"></textarea>
+              <button type="submit">Post</button>
+            </form>
+          </section>
+        </section>
+      {% endif %}
+    </main>
+
+    {% if match %}
+      <script id="matchData" type="application/json">{{ match | tojson }}</script>
+      <script src="{{ url_for('static', filename='match.js') }}"></script>
+    {% endif %}
+  </body>
+</html>
