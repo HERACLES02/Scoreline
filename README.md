@@ -1,5 +1,7 @@
 # Scoreline
 
+Scoreline is a web app for esports scores, detailed match rooms, team follows, and match discussions. The long-term goal is one platform for esports and real-life sports scores, results, stats, and analysis.
+
 Fast Flask scoreboard for esports matches, built to deploy on Vercel.
 
 ## What it does
