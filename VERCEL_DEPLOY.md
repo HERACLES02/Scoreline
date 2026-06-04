@@ -8,6 +8,7 @@ Set these in Vercel Project Settings -> Environment Variables:
 PANDASCORE_API_KEY
 DATABASE_URL
 SECRET_KEY
+SCORE_PROVIDER_PRIORITY
 ```
 
 Optional GRID variables:
@@ -24,7 +25,7 @@ GRID_MATCH_DETAIL_URL_TEMPLATE
 GRID_API_TIMEOUT
 ```
 
-Use `GRID_GRAPHQL_URL=https://api-op.grid.gg/central-data/graphql` and `GRID_AUTH_HEADER=x-api-key` for GRID Central Data. When configured, GRID is the primary scoreboard source for supported titles, and PandaScore is the fallback. `GRID_GRAPHQL_QUERY` is optional and only needed if you want to override the built-in search. `GRID_MATCH_DETAIL_URL_TEMPLATE` is only needed if GRID gives you a REST-style endpoint.
+Use `SCORE_PROVIDER_PRIORITY=pandascore,grid,mock` for live score cards with GRID fallback. Use `GRID_GRAPHQL_URL=https://api-op.grid.gg/central-data/graphql` and `GRID_AUTH_HEADER=x-api-key` for GRID Central Data. `GRID_GRAPHQL_QUERY` is optional and only needed if you want to override the built-in search. `GRID_MATCH_DETAIL_URL_TEMPLATE` is only needed if GRID gives you a REST-style endpoint.
 
 Optional Cito variables:
 

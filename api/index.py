@@ -1303,7 +1303,12 @@ def _status_bucket(raw_status: str) -> str:
 
 def get_matches(status: str, game: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     token = os.getenv("PANDASCORE_API_KEY")
-    cache_key = f"{status}:{game}:{bool(token)}:{grid_client.enabled}"
+    provider_priority = [
+        provider.strip().lower()
+        for provider in os.getenv("SCORE_PROVIDER_PRIORITY", "pandascore,grid,mock").split(",")
+        if provider.strip()
+    ]
+    cache_key = f"{status}:{game}:{bool(token)}:{grid_client.enabled}:{','.join(provider_priority)}"
     cached = cache.get(cache_key)
     if cached is not None:
         source = cached[0]["source"] if cached else ("mock" if not token and not grid_client.enabled else "cache")
@@ -1311,31 +1316,33 @@ def get_matches(status: str, game: str) -> tuple[list[dict[str, Any]], dict[str,
 
     client = PandaScoreClient(token)
     ttl = 25 if status == "live" else 180
-    meta = {"provider": "grid" if grid_client.enabled else "pandascore" if client.enabled else "mock", "mock": False}
+    errors: list[str] = []
 
-    try:
-        matches = grid_client.matches(status, game) if grid_client.enabled else []
-        if matches:
-            meta = {"provider": "grid", "source": "grid", "mock": False}
-        else:
-            matches = client.matches(status, game) if client.enabled else mock_matches(status, game)
-            meta = {
-                "provider": "pandascore" if client.enabled else "mock",
-                "source": "pandascore" if client.enabled else "mock",
-                "mock": not client.enabled,
-            }
-    except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+    for provider in provider_priority:
         try:
-            matches = client.matches(status, game) if client.enabled else mock_matches(status, game)
-            meta = {
-                "provider": "pandascore" if client.enabled else "mock",
-                "source": "pandascore" if client.enabled else "mock",
-                "mock": not client.enabled,
-                "fallback_error": str(exc),
-            }
-        except (HTTPError, URLError, TimeoutError, ValueError) as fallback_exc:
-            matches = mock_matches(status, game)
-            meta = {"provider": "mock", "source": "mock", "mock": True, "error": str(fallback_exc)}
+            if provider == "pandascore" and client.enabled:
+                matches = client.matches(status, game)
+            elif provider == "grid" and grid_client.enabled:
+                matches = grid_client.matches(status, game)
+            elif provider == "mock":
+                matches = mock_matches(status, game)
+            else:
+                continue
+        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+            errors.append(f"{provider}: {exc}")
+            continue
+
+        if matches:
+            meta = {"provider": provider, "source": provider, "mock": provider == "mock"}
+            if errors:
+                meta["fallback_errors"] = errors
+            cache.set(cache_key, matches, ttl)
+            return matches, meta
+
+    matches = mock_matches(status, game)
+    meta = {"provider": "mock", "source": "mock", "mock": True}
+    if errors:
+        meta["fallback_errors"] = errors
 
     cache.set(cache_key, matches, ttl)
     return matches, meta
