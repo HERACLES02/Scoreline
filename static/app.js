@@ -228,7 +228,14 @@ async function loadMatches() {
     if (!response.ok) throw new Error(payload.error || "Score request failed");
 
     renderMatches(payload.matches);
-    const source = payload.meta.mock ? "mock scores" : "PandaScore";
+    const sourceLabels = {
+      grid: "GRID",
+      pandascore: "PandaScore",
+      mock: "mock scores",
+      cache: "cache",
+    };
+    const sourceKey = payload.meta.source || payload.meta.provider;
+    const source = sourceLabels[sourceKey] || sourceLabels[payload.meta.provider] || sourceKey || "scores";
     providerStatus.textContent = source;
     sourceNote.textContent = `Updated ${formatTime(payload.meta.updated_at)} from ${source}.`;
   } catch (error) {

@@ -527,8 +527,24 @@ class PandaScoreClient:
 
 
 class GridClient:
+    GAME_TITLE_IDS = {
+        "lol": ["3"],
+        "csgo": ["28", "1"],
+        "valorant": ["6"],
+        "dota2": ["2"],
+        "rl": ["57"],
+        "r6siege": ["25"],
+    }
+    TITLE_NAMES = {
+        "1": "Counter-Strike",
+        "2": "Dota 2",
+        "3": "League of Legends",
+        "6": "VALORANT",
+        "25": "Rainbow Six",
+        "28": "Counter-Strike",
+        "57": "Rocket League",
+    }
     TITLE_IDS = {
-        "counter-strike": "28",
         "cs2": "28",
         "csgo": "1",
         "dota": "2",
@@ -549,6 +565,8 @@ class GridClient:
             title { id nameShortened }
             tournament { id name }
             teams { baseInfo { id name } }
+            workflowStatus
+            type
           }
         }
       }
@@ -563,6 +581,7 @@ class GridClient:
         self.auth_header = os.getenv("GRID_AUTH_HEADER", "x-api-key")
         self.search_window_hours = int(os.getenv("GRID_SEARCH_WINDOW_HOURS", "12"))
         self.search_limit = int(os.getenv("GRID_SEARCH_LIMIT", "20"))
+        self.list_limit = int(os.getenv("GRID_LIST_LIMIT", "20"))
         self.timeout = float(os.getenv("GRID_API_TIMEOUT", "8"))
 
     @property
@@ -573,11 +592,54 @@ class GridClient:
         if not self.enabled or not should_try_grid(match):
             return None
 
+        if match.get("source") == "grid":
+            return {
+                "provider": "grid",
+                "configured": True,
+                "available": True,
+                "mode": "graphql-list",
+                "raw": match.get("raw_grid"),
+                "series": match.get("raw_grid"),
+                "note": "This match came from GRID Central Data.",
+            }
+
         if self.match_detail_template:
             return self._rest_match_stats(match)
         if self.graphql_url:
             return self._graphql_match_stats(match)
         return None
+
+    def matches(self, status: str, game: str) -> list[dict[str, Any]]:
+        if not self.enabled or not self.graphql_url:
+            return []
+
+        started_at = self._list_window(status)
+        title_ids = self._title_ids_for_game(game)
+        if not title_ids:
+            return []
+
+        matches: list[dict[str, Any]] = []
+        for title_id in title_ids:
+            variables = {
+                "titleId": title_id,
+                "from": format_grid_time(started_at[0]),
+                "to": format_grid_time(started_at[1]),
+                "first": self.list_limit,
+            }
+            raw = self._post_graphql(self.SERIES_SEARCH_QUERY, variables)
+            if not raw or raw.get("errors"):
+                continue
+            matches.extend(
+                normalize_grid_series(series, status, self.TITLE_NAMES.get(title_id, "Esports"))
+                for series in self._series_candidates(raw)
+            )
+
+        matches = dedupe_matches(
+            match
+            for match in matches
+            if match["team_one"]["name"] != "TBD" or match["team_two"]["name"] != "TBD"
+        )
+        return sort_grid_matches(matches, status)[: max(self.list_limit, 1) * max(len(title_ids), 1)]
 
     def _rest_match_stats(self, match: dict[str, Any]) -> dict[str, Any] | None:
         url = self.match_detail_template.format(
@@ -753,6 +815,22 @@ class GridClient:
                 best = (score, candidate)
         return best[1] if best[0] >= 2 else None
 
+    def _title_ids_for_game(self, game: str) -> list[str]:
+        if game == "all":
+            ids: list[str] = []
+            for game_ids in self.GAME_TITLE_IDS.values():
+                ids.extend(game_ids)
+            return ids
+        return self.GAME_TITLE_IDS.get(game, [])
+
+    def _list_window(self, status: str) -> tuple[datetime, datetime]:
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        if status == "live":
+            return now - timedelta(hours=8), now + timedelta(hours=2)
+        if status == "results":
+            return now - timedelta(days=10), now
+        return now, now + timedelta(days=30)
+
     def _headers(self) -> dict[str, str]:
         if self.auth_header.lower() == "authorization":
             return {"Authorization": f"Bearer {self.api_key}"}
@@ -848,6 +926,87 @@ def normalize_pandascore_match(match: dict[str, Any], include_detail: bool = Fal
     if include_detail:
         normalized["stats"] = normalize_detail_stats(match)
     return normalized
+
+
+def normalize_grid_series(series: dict[str, Any], status: str, fallback_game: str) -> dict[str, Any]:
+    teams = series.get("teams") or []
+    team_one = grid_team(teams, 0)
+    team_two = grid_team(teams, 1)
+    title = series.get("title") or {}
+    tournament = series.get("tournament") or {}
+    starts_at = series.get("startTimeScheduled")
+    normalized = {
+        "id": f"grid-{series.get('id')}",
+        "source": "grid",
+        "game": grid_game_name(title, fallback_game),
+        "league": tournament.get("name") or "GRID",
+        "tournament": series.get("type") or series.get("workflowStatus") or "Series",
+        "status": grid_status(status, starts_at),
+        "starts_at": starts_at,
+        "team_one": team_one,
+        "team_two": team_two,
+        "score_one": 0,
+        "score_two": 0,
+        "best_of": None,
+        "stream_url": None,
+        "winner_id": None,
+        "raw_grid": series,
+    }
+    normalized["stats"] = normalize_grid_detail_stats(series)
+    return normalized
+
+
+def normalize_grid_detail_stats(series: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "provider": "grid",
+        "available": True,
+        "detailed_stats": False,
+        "complete": None,
+        "games": [],
+        "rosters": [],
+        "player_stats": [],
+        "coverage_note": "GRID Central Data returned the series schedule. Live score/stat fields are not mapped yet.",
+    }
+
+
+def grid_team(teams: list[dict[str, Any]], index: int) -> dict[str, str | None]:
+    try:
+        base_info = teams[index].get("baseInfo") or {}
+    except IndexError:
+        base_info = {}
+    return {
+        "id": f"grid-team-{base_info.get('id')}" if base_info.get("id") is not None else None,
+        "name": base_info.get("name") or "TBD",
+        "image": None,
+    }
+
+
+def grid_game_name(title: dict[str, Any], fallback: str) -> str:
+    title_name = str(title.get("nameShortened") or "").lower()
+    if title_name == "cs2" or title_name == "csgo":
+        return "Counter-Strike"
+    if title_name == "dota":
+        return "Dota 2"
+    if title_name == "lol":
+        return "League of Legends"
+    if title_name == "val":
+        return "VALORANT"
+    if title_name == "rl":
+        return "Rocket League"
+    if title_name == "r6":
+        return "Rainbow Six"
+    return fallback
+
+
+def grid_status(requested_status: str, starts_at: Any) -> str:
+    if requested_status == "results":
+        return "finished"
+    if requested_status == "live":
+        return "running"
+    parsed = parse_iso_datetime(starts_at)
+    if parsed and parsed <= datetime.now(timezone.utc):
+        return "running"
+    return "not_started"
 
 
 def normalize_detail_stats(match: dict[str, Any]) -> dict[str, Any]:
@@ -1117,6 +1276,23 @@ def normalize_lookup_name(value: Any) -> str:
     return "".join(char for char in str(value or "").lower() if char.isalnum())
 
 
+def sort_grid_matches(matches: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
+    reverse = status == "results"
+    return sorted(matches, key=lambda match: match.get("starts_at") or "", reverse=reverse)
+
+
+def dedupe_matches(matches: Any) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for match in matches:
+        match_id = str(match.get("id"))
+        if match_id in seen:
+            continue
+        seen.add(match_id)
+        unique.append(match)
+    return unique
+
+
 def _status_bucket(raw_status: str) -> str:
     if raw_status in {"running", "live"}:
         return "live"
@@ -1127,20 +1303,39 @@ def _status_bucket(raw_status: str) -> str:
 
 def get_matches(status: str, game: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     token = os.getenv("PANDASCORE_API_KEY")
-    cache_key = f"{status}:{game}:{bool(token)}"
+    cache_key = f"{status}:{game}:{bool(token)}:{grid_client.enabled}"
     cached = cache.get(cache_key)
     if cached is not None:
-        return cached, {"provider": "cache", "mock": cached[0]["source"] == "mock" if cached else not token}
+        source = cached[0]["source"] if cached else ("mock" if not token and not grid_client.enabled else "cache")
+        return cached, {"provider": "cache", "source": source, "mock": source == "mock"}
 
     client = PandaScoreClient(token)
     ttl = 25 if status == "live" else 180
-    meta = {"provider": "pandascore" if client.enabled else "mock", "mock": not client.enabled}
+    meta = {"provider": "grid" if grid_client.enabled else "pandascore" if client.enabled else "mock", "mock": False}
 
     try:
-        matches = client.matches(status, game) if client.enabled else mock_matches(status, game)
+        matches = grid_client.matches(status, game) if grid_client.enabled else []
+        if matches:
+            meta = {"provider": "grid", "source": "grid", "mock": False}
+        else:
+            matches = client.matches(status, game) if client.enabled else mock_matches(status, game)
+            meta = {
+                "provider": "pandascore" if client.enabled else "mock",
+                "source": "pandascore" if client.enabled else "mock",
+                "mock": not client.enabled,
+            }
     except (HTTPError, URLError, TimeoutError, ValueError) as exc:
-        matches = mock_matches(status, game)
-        meta = {"provider": "mock", "mock": True, "error": str(exc)}
+        try:
+            matches = client.matches(status, game) if client.enabled else mock_matches(status, game)
+            meta = {
+                "provider": "pandascore" if client.enabled else "mock",
+                "source": "pandascore" if client.enabled else "mock",
+                "mock": not client.enabled,
+                "fallback_error": str(exc),
+            }
+        except (HTTPError, URLError, TimeoutError, ValueError) as fallback_exc:
+            matches = mock_matches(status, game)
+            meta = {"provider": "mock", "source": "mock", "mock": True, "error": str(fallback_exc)}
 
     cache.set(cache_key, matches, ttl)
     return matches, meta

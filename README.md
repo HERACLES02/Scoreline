@@ -8,6 +8,7 @@ Fast Flask scoreboard for esports matches, built to deploy on Vercel.
 
 - Shows live, upcoming, and recent result tabs
 - Filters by major esport
+- Uses GRID as the primary match source when `GRID_API_KEY` is set
 - Uses PandaScore when `PANDASCORE_API_KEY` is set
 - Falls back to mock data so the UI runs immediately
 - Caches live data briefly to reduce API usage
@@ -58,6 +59,7 @@ GRID_GRAPHQL_QUERY=
 GRID_AUTH_HEADER=x-api-key
 GRID_SEARCH_WINDOW_HOURS=12
 GRID_SEARCH_LIMIT=20
+GRID_LIST_LIMIT=20
 CITO_API_KEY=your_cito_key_here
 CITO_MATCH_STATS_URL_TEMPLATE=https://api.citoapi.com/api/v1/{game}/matches/{match_id}/player-stats
 ```
@@ -105,7 +107,7 @@ For `DATABASE_URL`, use the pooled connection string from Supabase or Neon when 
 
 PandaScore detailed stats depend on match/game coverage and your plan. Match pages show maps, rosters, and player stat rows when the API returns them.
 
-For GRID Central Data, set `GRID_API_KEY`, `GRID_GRAPHQL_URL=https://api-op.grid.gg/central-data/graphql`, and `GRID_AUTH_HEADER=x-api-key`. By default, the app searches GRID `allSeries` for CS2, CS:GO, and Dota matches by title ID, scheduled start time, and team names. Use `GRID_SEARCH_WINDOW_HOURS` and `GRID_SEARCH_LIMIT` to tune the search. `GRID_GRAPHQL_QUERY` is only needed if you want to override the built-in search query. If GRID gives you a REST-style match detail URL instead, you can still use `GRID_MATCH_DETAIL_URL_TEMPLATE` with `{match_id}` and `{game}` placeholders.
+For GRID Central Data, set `GRID_API_KEY`, `GRID_GRAPHQL_URL=https://api-op.grid.gg/central-data/graphql`, and `GRID_AUTH_HEADER=x-api-key`. When configured, GRID is the primary source for match lists across the supported GRID titles: League of Legends, CS2/CS:GO, VALORANT, Dota 2, Rocket League, and Rainbow Six. PandaScore remains the fallback if GRID returns no usable matches. Use `GRID_LIST_LIMIT` to tune scoreboard results, and `GRID_SEARCH_WINDOW_HOURS` / `GRID_SEARCH_LIMIT` to tune match-detail lookup. `GRID_GRAPHQL_QUERY` is only needed if you want to override the built-in search query. If GRID gives you a REST-style match detail URL instead, you can still use `GRID_MATCH_DETAIL_URL_TEMPLATE` with `{match_id}` and `{game}` placeholders.
 
 For Cito, set `CITO_API_KEY`. If PandaScore match IDs do not match Cito IDs, set `CITO_MATCH_STATS_URL_TEMPLATE` to the endpoint shape Cito gives you. The template can use `{match_id}` and `{game}` placeholders.
 
