@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Profile - Scoreline</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="{{ url_for('static', filename='ui.js') }}" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -12,23 +14,23 @@
         <p class="eyebrow">Account</p>
         <h1>Profile</h1>
         <nav class="page-nav" aria-label="Primary">
-          <a href="/">Scores</a>
-          <a href="/profile">Profile</a>
+          <a href="/"><i data-lucide="radio"></i><span>Scores</span></a>
+          <a href="/profile"><i data-lucide="user-round"></i><span>Profile</span></a>
         </nav>
       </div>
       <div class="top-actions">
-        <div class="status-pill" id="providerStatus">Profile</div>
+        <div class="status-pill" id="providerStatus"><i data-lucide="user-round"></i><span>Profile</span></div>
         <details class="account-menu">
-          <summary id="accountSummary">Signed out</summary>
+          <summary id="accountSummary"><i data-lucide="circle-user-round"></i><span>Signed out</span></summary>
           <form class="auth-form" id="authForm">
             <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
             <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
             <div class="auth-actions">
-              <button type="submit" data-mode="login">Login</button>
-              <button type="submit" data-mode="register">Register</button>
+              <button type="submit" data-mode="login"><i data-lucide="log-in"></i><span>Login</span></button>
+              <button type="submit" data-mode="register"><i data-lucide="user-plus"></i><span>Register</span></button>
             </div>
           </form>
-          <button class="logout-button" type="button" id="logoutButton">Logout</button>
+          <button class="logout-button" type="button" id="logoutButton"><i data-lucide="log-out"></i><span>Logout</span></button>
         </details>
       </div>
     </header>

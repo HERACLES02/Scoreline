@@ -9,6 +9,8 @@
   --accent: #30d5a8;
   --accent-2: #ffcc66;
   --danger: #ff6b6b;
+  --blue: #7db7ff;
+  --shadow: 0 18px 55px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -18,10 +20,45 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    linear-gradient(180deg, #11151b 0, var(--bg) 240px),
+    var(--bg);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
+}
+
+a,
+button,
+summary,
+select {
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+button:hover,
+.details-link:hover,
+.stream:hover,
+.page-nav a:hover,
+.follow-item button:hover,
+.follow-button:hover {
+  transform: translateY(-1px);
+}
+
+i[data-lucide],
+.lucide {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 button,
@@ -38,7 +75,11 @@ textarea {
   gap: 16px;
   padding: 18px clamp(16px, 4vw, 44px);
   border-bottom: 1px solid var(--line);
-  background: #101318;
+  background: rgba(16, 19, 24, 0.92);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .eyebrow {
@@ -66,12 +107,31 @@ h1 {
 
 .page-nav a,
 .details-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--accent-2);
   font-weight: 800;
   text-decoration: none;
 }
 
+.page-nav a {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.page-nav a:hover {
+  border-color: var(--line);
+  background: var(--panel);
+}
+
 .status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-width: 86px;
   padding: 7px 10px;
   border: 1px solid var(--line);
@@ -97,6 +157,9 @@ h1 {
 }
 
 .account-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-height: 38px;
   padding: 9px 12px;
   color: var(--accent-2);
@@ -141,6 +204,10 @@ h1 {
 
 .auth-actions button,
 .logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -148,6 +215,14 @@ h1 {
   font-weight: 800;
   background: var(--accent);
   cursor: pointer;
+}
+
+.auth-actions button:hover,
+.logout-button:hover,
+.comment-form button:hover,
+.discuss:hover,
+.tab.active:hover {
+  background: #42e6b8;
 }
 
 .logout-button {
@@ -174,16 +249,25 @@ h1 {
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel);
+  background: #0f1318;
 }
 
 .tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-width: 96px;
   border: 0;
   border-radius: 6px;
   color: var(--muted);
   background: transparent;
   cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--panel-strong);
 }
 
 .tab.active {
@@ -196,6 +280,12 @@ h1 {
   align-items: center;
   gap: 10px;
   color: var(--muted);
+}
+
+.game-filter span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .game-filter select {
@@ -225,7 +315,8 @@ h1 {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel);
+  background: linear-gradient(180deg, #141a21, var(--panel));
+  box-shadow: var(--shadow);
 }
 
 .stats-grid {
@@ -240,6 +331,17 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+}
+
+.stats-panel,
+.side-panel,
+.matches,
+.match-card,
+.follow-item,
+.comment,
+.map-item,
+.roster-panel {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 .map-list,
@@ -335,6 +437,10 @@ h1 {
 
 .follow-button,
 .follow-item button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--line);
@@ -389,6 +495,8 @@ h1 {
 .side-panel {
   align-self: start;
   padding: 16px;
+  position: sticky;
+  top: 96px;
 }
 
 .metric {
@@ -513,6 +621,10 @@ h1 {
 
 .comment-form button,
 .discuss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -541,6 +653,10 @@ h1 {
 }
 
 .refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid var(--line);
@@ -548,6 +664,12 @@ h1 {
   color: var(--text);
   background: var(--panel-strong);
   cursor: pointer;
+}
+
+.refresh-button:hover,
+.comment-actions button:hover {
+  border-color: #3a4654;
+  background: #202832;
 }
 
 .refresh-button:disabled {
@@ -565,6 +687,14 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #101419;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.match-card:hover {
+  border-color: #3a4654;
+  background: #131922;
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
 }
 
 .match-card.selected {
@@ -582,6 +712,13 @@ h1 {
 }
 
 .game {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid rgba(48, 213, 168, 0.25);
+  border-radius: 8px;
+  background: rgba(48, 213, 168, 0.08);
   color: var(--accent);
   font-weight: 700;
 }
@@ -652,6 +789,9 @@ h1 {
 }
 
 .stream {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--accent-2);
   text-decoration: none;
 }
@@ -660,6 +800,11 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.match-actions a,
+.match-actions button {
+  white-space: nowrap;
 }
 
 .discuss {
@@ -676,6 +821,11 @@ h1 {
 
 @media (max-width: 760px) {
   .topbar,
+  .side-panel {
+    position: static;
+  }
+
+  .topbar,
   .top-actions,
   .controls,
   .section-head {
@@ -684,6 +834,14 @@ h1 {
   }
 
   .account-menu {
+    width: 100%;
+  }
+
+  .page-nav {
+    flex-wrap: wrap;
+  }
+
+  .status-pill {
     width: 100%;
   }
 

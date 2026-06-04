@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% if match %}{{ match.team_one.name }} vs {{ match.team_two.name }}{% else %}Match not found{% endif %} - Scoreline</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="{{ url_for('static', filename='ui.js') }}" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -12,23 +14,23 @@
         <p class="eyebrow">Match room</p>
         <h1>Scoreline</h1>
         <nav class="page-nav" aria-label="Primary">
-          <a href="/">Scores</a>
-          <a href="/profile">Profile</a>
+          <a href="/"><i data-lucide="radio"></i><span>Scores</span></a>
+          <a href="/profile"><i data-lucide="user-round"></i><span>Profile</span></a>
         </nav>
       </div>
       <div class="top-actions">
-        <div class="status-pill" id="providerStatus">Match</div>
+        <div class="status-pill" id="providerStatus"><i data-lucide="swords"></i><span>Match</span></div>
         <details class="account-menu">
-          <summary id="accountSummary">Signed out</summary>
+          <summary id="accountSummary"><i data-lucide="circle-user-round"></i><span>Signed out</span></summary>
           <form class="auth-form" id="authForm">
             <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
             <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
             <div class="auth-actions">
-              <button type="submit" data-mode="login">Login</button>
-              <button type="submit" data-mode="register">Register</button>
+              <button type="submit" data-mode="login"><i data-lucide="log-in"></i><span>Login</span></button>
+              <button type="submit" data-mode="register"><i data-lucide="user-plus"></i><span>Register</span></button>
             </div>
           </form>
-          <button class="logout-button" type="button" id="logoutButton">Logout</button>
+          <button class="logout-button" type="button" id="logoutButton"><i data-lucide="log-out"></i><span>Logout</span></button>
         </details>
       </div>
     </header>
@@ -52,7 +54,7 @@
                 <h2>{{ match.team_one.name }}</h2>
                 {% if match.team_one.id %}
                   <button class="follow-button" type="button" data-team-id="{{ match.team_one.id }}" data-team-name="{{ match.team_one.name }}" data-game="{{ match.game }}">
-                    {% if match.team_one.followed %}Following{% else %}Follow{% endif %}
+                    <i data-lucide="{% if match.team_one.followed %}check{% else %}star{% endif %}"></i><span>{% if match.team_one.followed %}Following{% else %}Follow{% endif %}</span>
                   </button>
                 {% endif %}
               </div>
@@ -66,7 +68,7 @@
                 <h2>{{ match.team_two.name }}</h2>
                 {% if match.team_two.id %}
                   <button class="follow-button" type="button" data-team-id="{{ match.team_two.id }}" data-team-name="{{ match.team_two.name }}" data-game="{{ match.game }}">
-                    {% if match.team_two.followed %}Following{% else %}Follow{% endif %}
+                    <i data-lucide="{% if match.team_two.followed %}check{% else %}star{% endif %}"></i><span>{% if match.team_two.followed %}Following{% else %}Follow{% endif %}</span>
                   </button>
                 {% endif %}
               </div>
@@ -75,7 +77,7 @@
               <span>{% if match.best_of %}Best of {{ match.best_of }}{% else %}Match{% endif %}</span>
               <span id="detailStart">{{ match.starts_at or "TBD" }}</span>
               {% if match.stream_url %}
-                <a class="stream" href="{{ match.stream_url }}" target="_blank" rel="noreferrer">Watch</a>
+                <a class="stream" href="{{ match.stream_url }}" target="_blank" rel="noreferrer"><i data-lucide="play"></i><span>Watch</span></a>
               {% endif %}
             </div>
           </article>
@@ -132,7 +134,7 @@
             <div class="comment-list wide-comments" id="commentList"></div>
             <form class="comment-form" id="commentForm">
               <textarea id="commentBody" name="body" maxlength="1000" rows="4" placeholder="Login to comment"></textarea>
-              <button type="submit">Post</button>
+              <button type="submit"><i data-lucide="send"></i><span>Post</span></button>
             </form>
           </section>
         </section>
