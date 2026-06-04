@@ -5,7 +5,7 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -527,12 +527,42 @@ class PandaScoreClient:
 
 
 class GridClient:
+    TITLE_IDS = {
+        "counter-strike": "28",
+        "cs2": "28",
+        "csgo": "1",
+        "dota": "2",
+        "dota 2": "2",
+    }
+    SERIES_SEARCH_QUERY = """
+    query GridSeriesSearch($titleId: ID!, $from: String!, $to: String!, $first: Int!) {
+      allSeries(
+        first: $first,
+        filter: { titleId: $titleId, startTimeScheduled: { gte: $from, lte: $to } },
+        orderBy: StartTimeScheduled,
+        orderDirection: ASC
+      ) {
+        edges {
+          node {
+            id
+            startTimeScheduled
+            title { id nameShortened }
+            tournament { id name }
+            teams { baseInfo { id name } }
+          }
+        }
+      }
+    }
+    """
+
     def __init__(self) -> None:
         self.api_key = os.getenv("GRID_API_KEY")
         self.match_detail_template = os.getenv("GRID_MATCH_DETAIL_URL_TEMPLATE")
         self.graphql_url = os.getenv("GRID_GRAPHQL_URL")
         self.graphql_query = os.getenv("GRID_GRAPHQL_QUERY")
         self.auth_header = os.getenv("GRID_AUTH_HEADER", "x-api-key")
+        self.search_window_hours = int(os.getenv("GRID_SEARCH_WINDOW_HOURS", "12"))
+        self.search_limit = int(os.getenv("GRID_SEARCH_LIMIT", "20"))
         self.timeout = float(os.getenv("GRID_API_TIMEOUT", "8"))
 
     @property
@@ -572,17 +602,7 @@ class GridClient:
 
     def _graphql_match_stats(self, match: dict[str, Any]) -> dict[str, Any]:
         if not self.graphql_query:
-            return {
-                "provider": "grid",
-                "configured": True,
-                "available": False,
-                "mode": "graphql",
-                "raw": None,
-                "note": (
-                    "GRID GraphQL is configured. Add GRID_GRAPHQL_QUERY with the query GRID gives "
-                    "you for your schema before match stats can be fetched."
-                ),
-            }
+            return self._search_series_stats(match)
 
         variables = {
             "matchId": match["id"],
@@ -625,6 +645,113 @@ class GridClient:
                 else "GRID GraphQL returned errors; check GRID_GRAPHQL_QUERY and variables."
             ),
         }
+
+    def _search_series_stats(self, match: dict[str, Any]) -> dict[str, Any]:
+        title_id = self._title_id(match)
+        starts_at = parse_iso_datetime(match.get("starts_at"))
+        if not title_id or not starts_at:
+            return {
+                "provider": "grid",
+                "configured": True,
+                "available": False,
+                "mode": "graphql-search",
+                "raw": None,
+                "note": "GRID search needs a mapped CS/Dota title and a match start time.",
+            }
+
+        half_window = timedelta(hours=self.search_window_hours)
+        variables = {
+            "titleId": title_id,
+            "from": format_grid_time(starts_at - half_window),
+            "to": format_grid_time(starts_at + half_window),
+            "first": self.search_limit,
+        }
+        raw = self._post_graphql(self.SERIES_SEARCH_QUERY, variables)
+        if raw is None:
+            return {
+                "provider": "grid",
+                "configured": True,
+                "available": False,
+                "mode": "graphql-search",
+                "raw": None,
+                "note": "GRID series search request failed.",
+            }
+        if isinstance(raw, dict) and raw.get("errors"):
+            return {
+                "provider": "grid",
+                "configured": True,
+                "available": False,
+                "mode": "graphql-search",
+                "raw": raw,
+                "note": "GRID series search returned errors.",
+            }
+
+        candidates = self._series_candidates(raw)
+        selected = self._best_series_match(match, candidates)
+        return {
+            "provider": "grid",
+            "configured": True,
+            "available": bool(selected),
+            "mode": "graphql-search",
+            "raw": raw,
+            "series": selected,
+            "candidate_count": len(candidates),
+            "note": (
+                "GRID matched a likely series by title, start time, and team names."
+                if selected
+                else "GRID search returned series, but none matched both teams closely enough."
+            ),
+        }
+
+    def _post_graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any] | None:
+        body = json.dumps({"query": query, "variables": variables}).encode("utf-8")
+        try:
+            request_obj = Request(
+                self.graphql_url,
+                data=body,
+                headers={**self._headers(), "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urlopen(request_obj, timeout=self.timeout) as response:
+                payload = response.read().decode("utf-8")
+            return json_loads(payload)
+        except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError):
+            return None
+
+    def _title_id(self, match: dict[str, Any]) -> str | None:
+        game = str(match.get("game") or "").lower()
+        if "counter" in game or "cs2" in game:
+            return self.TITLE_IDS["cs2"]
+        if "csgo" in game:
+            return self.TITLE_IDS["csgo"]
+        if "dota" in game:
+            return self.TITLE_IDS["dota"]
+        return None
+
+    def _series_candidates(self, raw: dict[str, Any]) -> list[dict[str, Any]]:
+        edges = (((raw.get("data") or {}).get("allSeries") or {}).get("edges") or [])
+        return [edge.get("node") for edge in edges if isinstance(edge.get("node"), dict)]
+
+    def _best_series_match(self, match: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+        wanted = {
+            normalize_lookup_name((match.get("team_one") or {}).get("name")),
+            normalize_lookup_name((match.get("team_two") or {}).get("name")),
+        }
+        wanted.discard("")
+        if len(wanted) < 2:
+            return None
+
+        best: tuple[int, dict[str, Any] | None] = (0, None)
+        for candidate in candidates:
+            teams = {
+                normalize_lookup_name(((team.get("baseInfo") or {}).get("name")))
+                for team in candidate.get("teams", [])
+                if isinstance(team, dict)
+            }
+            score = len(wanted.intersection(teams))
+            if score > best[0]:
+                best = (score, candidate)
+        return best[1] if best[0] >= 2 else None
 
     def _headers(self) -> dict[str, str]:
         if self.auth_header.lower() == "authorization":
@@ -968,6 +1095,26 @@ def mock_matches(status: str, game: str) -> list[dict[str, Any]]:
 
 def iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def parse_iso_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def format_grid_time(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def normalize_lookup_name(value: Any) -> str:
+    return "".join(char for char in str(value or "").lower() if char.isalnum())
 
 
 def _status_bucket(raw_status: str) -> str:
