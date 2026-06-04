@@ -532,7 +532,7 @@ class GridClient:
         self.match_detail_template = os.getenv("GRID_MATCH_DETAIL_URL_TEMPLATE")
         self.graphql_url = os.getenv("GRID_GRAPHQL_URL")
         self.graphql_query = os.getenv("GRID_GRAPHQL_QUERY")
-        self.auth_header = os.getenv("GRID_AUTH_HEADER", "Authorization")
+        self.auth_header = os.getenv("GRID_AUTH_HEADER", "x-api-key")
         self.timeout = float(os.getenv("GRID_API_TIMEOUT", "8"))
 
     @property

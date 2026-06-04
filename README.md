@@ -55,7 +55,7 @@ SECRET_KEY=replace_with_a_long_random_secret
 GRID_API_KEY=your_grid_key_here
 GRID_GRAPHQL_URL=https://api-op.grid.gg/central-data/graphql
 GRID_GRAPHQL_QUERY=
-GRID_AUTH_HEADER=Authorization
+GRID_AUTH_HEADER=x-api-key
 CITO_API_KEY=your_cito_key_here
 CITO_MATCH_STATS_URL_TEMPLATE=https://api.citoapi.com/api/v1/{game}/matches/{match_id}/player-stats
 ```
