@@ -161,15 +161,17 @@ function renderPlayerStats(rows) {
 }
 
 function renderGrid(grid) {
+  const mode = grid.mode ? ` (${grid.mode})` : "";
   if (grid.raw) {
-    gridStatus.textContent = "Connected";
+    gridStatus.textContent = `Connected${mode}`;
     gridNote.textContent = grid.note || "GRID returned data for this match.";
   } else if (grid.configured) {
-    gridStatus.textContent = "No data";
+    gridStatus.textContent = `Configured${mode}`;
     gridNote.textContent = grid.note || "GRID is configured but did not return data for this match.";
   } else {
     gridStatus.textContent = "Not configured";
-    gridNote.textContent = grid.note || "Set GRID_API_KEY and GRID_MATCH_DETAIL_URL_TEMPLATE to query GRID for CS/Dota.";
+    gridNote.textContent =
+      grid.note || "Set GRID_API_KEY and GRID_GRAPHQL_URL to query GRID for CS/Dota.";
   }
 }
 

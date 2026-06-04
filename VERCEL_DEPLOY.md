@@ -14,9 +14,14 @@ Optional GRID variables:
 
 ```text
 GRID_API_KEY
+GRID_GRAPHQL_URL
+GRID_GRAPHQL_QUERY
+GRID_AUTH_HEADER
 GRID_MATCH_DETAIL_URL_TEMPLATE
 GRID_API_TIMEOUT
 ```
+
+Use `GRID_GRAPHQL_URL=https://api-op.grid.gg/central-data/graphql` for GRID Central Data. Add `GRID_GRAPHQL_QUERY` only after GRID gives you the account/schema-specific query for match or series lookup. The app passes `matchId`, `game`, `teamOne`, `teamTwo`, and `startsAt` as GraphQL variables. `GRID_MATCH_DETAIL_URL_TEMPLATE` is only needed if GRID gives you a REST-style endpoint.
 
 Optional Cito variables:
 

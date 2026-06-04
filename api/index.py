@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from flask import Flask, jsonify, render_template, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -530,25 +530,32 @@ class GridClient:
     def __init__(self) -> None:
         self.api_key = os.getenv("GRID_API_KEY")
         self.match_detail_template = os.getenv("GRID_MATCH_DETAIL_URL_TEMPLATE")
+        self.graphql_url = os.getenv("GRID_GRAPHQL_URL")
+        self.graphql_query = os.getenv("GRID_GRAPHQL_QUERY")
+        self.auth_header = os.getenv("GRID_AUTH_HEADER", "Authorization")
         self.timeout = float(os.getenv("GRID_API_TIMEOUT", "8"))
 
     @property
     def enabled(self) -> bool:
-        return bool(self.api_key and self.match_detail_template)
+        return bool(self.api_key and (self.match_detail_template or self.graphql_url))
 
     def match_stats(self, match: dict[str, Any]) -> dict[str, Any] | None:
         if not self.enabled or not should_try_grid(match):
             return None
 
+        if self.match_detail_template:
+            return self._rest_match_stats(match)
+        if self.graphql_url:
+            return self._graphql_match_stats(match)
+        return None
+
+    def _rest_match_stats(self, match: dict[str, Any]) -> dict[str, Any] | None:
         url = self.match_detail_template.format(
             match_id=match["id"],
             game=match["game"].lower().replace(" ", "-"),
         )
-        request_headers = {"Authorization": f"Bearer {self.api_key}"}
         try:
-            from urllib.request import Request
-
-            request_obj = Request(url, headers=request_headers)
+            request_obj = Request(url, headers=self._headers())
             with urlopen(request_obj, timeout=self.timeout) as response:
                 payload = response.read().decode("utf-8")
         except (HTTPError, URLError, TimeoutError, ValueError):
@@ -558,9 +565,71 @@ class GridClient:
             "provider": "grid",
             "configured": True,
             "available": True,
+            "mode": "rest",
             "raw": json_loads(payload),
             "note": "GRID response is attached raw until the account-specific schema is mapped.",
         }
+
+    def _graphql_match_stats(self, match: dict[str, Any]) -> dict[str, Any]:
+        if not self.graphql_query:
+            return {
+                "provider": "grid",
+                "configured": True,
+                "available": False,
+                "mode": "graphql",
+                "raw": None,
+                "note": (
+                    "GRID GraphQL is configured. Add GRID_GRAPHQL_QUERY with the query GRID gives "
+                    "you for your schema before match stats can be fetched."
+                ),
+            }
+
+        variables = {
+            "matchId": match["id"],
+            "game": match.get("game"),
+            "teamOne": (match.get("team_one") or {}).get("name"),
+            "teamTwo": (match.get("team_two") or {}).get("name"),
+            "startsAt": match.get("starts_at"),
+        }
+        body = json.dumps({"query": self.graphql_query, "variables": variables}).encode("utf-8")
+        try:
+            request_obj = Request(
+                self.graphql_url,
+                data=body,
+                headers={**self._headers(), "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urlopen(request_obj, timeout=self.timeout) as response:
+                payload = response.read().decode("utf-8")
+            raw = json_loads(payload)
+        except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+            return {
+                "provider": "grid",
+                "configured": True,
+                "available": False,
+                "mode": "graphql",
+                "raw": None,
+                "note": f"GRID GraphQL request failed: {exc}",
+            }
+
+        has_errors = isinstance(raw, dict) and bool(raw.get("errors"))
+        return {
+            "provider": "grid",
+            "configured": True,
+            "available": not has_errors,
+            "mode": "graphql",
+            "raw": raw,
+            "note": (
+                "GRID GraphQL returned data."
+                if not has_errors
+                else "GRID GraphQL returned errors; check GRID_GRAPHQL_QUERY and variables."
+            ),
+        }
+
+    def _headers(self) -> dict[str, str]:
+        if self.auth_header.lower() == "authorization":
+            return {"Authorization": f"Bearer {self.api_key}"}
+        return {self.auth_header: self.api_key}
 
 
 class CitoClient:
@@ -966,7 +1035,10 @@ def get_match_detail(match_id: str) -> dict[str, Any] | None:
         "provider": "grid",
         "configured": grid_client.enabled,
         "available": False,
-        "note": "GRID is only queried for CS/Dota when GRID_API_KEY and GRID_MATCH_DETAIL_URL_TEMPLATE are set.",
+        "note": (
+            "GRID is only queried for CS/Dota when GRID_API_KEY is set with "
+            "GRID_GRAPHQL_URL or GRID_MATCH_DETAIL_URL_TEMPLATE."
+        ),
     }
     cito_stats = cito_client.match_stats(match)
     match["stats"]["cito"] = cito_stats or {
