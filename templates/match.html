@@ -18,8 +18,8 @@
       </div>
       <div class="top-actions">
         <div class="status-pill" id="providerStatus">Match</div>
-        <div class="account-panel">
-          <div class="account-summary" id="accountSummary">Signed out</div>
+        <details class="account-menu">
+          <summary id="accountSummary">Signed out</summary>
           <form class="auth-form" id="authForm">
             <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
             <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
@@ -29,7 +29,7 @@
             </div>
           </form>
           <button class="logout-button" type="button" id="logoutButton">Logout</button>
-        </div>
+        </details>
       </div>
     </header>
 
@@ -106,20 +106,22 @@
             <div class="stats-table-wrap" id="playerStatsWrap"></div>
           </section>
 
-          <section class="stats-panel">
-            <div class="section-head">
-              <h2>GRID data</h2>
-              <span class="status-pill" id="gridStatus">Not configured</span>
-            </div>
-            <div class="source-note" id="gridNote"></div>
-          </section>
+          <section class="stats-grid provider-grid">
+            <article class="stats-panel">
+              <div class="section-head">
+                <h2>GRID data</h2>
+                <span class="status-pill" id="gridStatus">Not configured</span>
+              </div>
+              <div class="source-note" id="gridNote"></div>
+            </article>
 
-          <section class="stats-panel">
-            <div class="section-head">
-              <h2>Cito data</h2>
-              <span class="status-pill" id="citoStatus">Not configured</span>
-            </div>
-            <div class="source-note" id="citoNote"></div>
+            <article class="stats-panel">
+              <div class="section-head">
+                <h2>Cito data</h2>
+                <span class="status-pill" id="citoStatus">Not configured</span>
+              </div>
+              <div class="source-note" id="citoNote"></div>
+            </article>
           </section>
 
           <section class="matches discussion-main">

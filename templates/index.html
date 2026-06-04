@@ -18,8 +18,8 @@
       </div>
       <div class="top-actions">
         <div class="status-pill" id="providerStatus">Loading</div>
-        <div class="account-panel">
-          <div class="account-summary" id="accountSummary">Signed out</div>
+        <details class="account-menu">
+          <summary id="accountSummary">Signed out</summary>
           <form class="auth-form" id="authForm">
             <input id="authUsername" name="username" maxlength="30" placeholder="Username" autocomplete="username">
             <input id="authPassword" name="password" type="password" minlength="8" placeholder="Password" autocomplete="current-password">
@@ -29,7 +29,7 @@
             </div>
           </form>
           <button class="logout-button" type="button" id="logoutButton">Logout</button>
-        </div>
+        </details>
       </div>
     </header>
 

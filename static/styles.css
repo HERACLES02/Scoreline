@@ -1,9 +1,9 @@
 :root {
   color-scheme: dark;
   --bg: #0b0d10;
-  --panel: #15191f;
-  --panel-strong: #1d232b;
-  --line: #2d3641;
+  --panel: #12161b;
+  --panel-strong: #1a2027;
+  --line: #27303a;
   --text: #f6f8fb;
   --muted: #9ba8b7;
   --accent: #30d5a8;
@@ -36,7 +36,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px clamp(16px, 4vw, 48px);
+  padding: 18px clamp(16px, 4vw, 44px);
   border-bottom: 1px solid var(--line);
   background: #101318;
 }
@@ -55,7 +55,7 @@ h2 {
 }
 
 h1 {
-  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
 }
 
 .page-nav {
@@ -72,11 +72,12 @@ h1 {
 }
 
 .status-pill {
-  min-width: 104px;
-  padding: 9px 12px;
+  min-width: 86px;
+  padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--accent-2);
+  font-size: 0.86rem;
   text-align: center;
   background: var(--panel);
 }
@@ -87,27 +88,38 @@ h1 {
   gap: 12px;
 }
 
-.account-panel {
-  display: grid;
-  width: min(360px, 44vw);
-  gap: 8px;
-  padding: 10px;
+.account-menu {
+  position: relative;
+  width: min(310px, 38vw);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
 }
 
-.account-summary {
+.account-menu summary {
+  min-height: 38px;
+  padding: 9px 12px;
   color: var(--accent-2);
   font-size: 0.85rem;
   font-weight: 800;
+  cursor: pointer;
   overflow-wrap: anywhere;
+  list-style: none;
+}
+
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu[open] {
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 .auth-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  padding: 0 10px 10px;
 }
 
 .auth-form input {
@@ -139,12 +151,13 @@ h1 {
 }
 
 .logout-button {
-  width: 100%;
+  width: calc(100% - 20px);
+  margin: 0 10px 10px;
 }
 
 .shell {
-  width: min(1180px, calc(100% - 32px));
-  margin: 24px auto 48px;
+  width: min(1220px, calc(100% - 28px));
+  margin: 18px auto 42px;
 }
 
 .controls {
@@ -197,8 +210,8 @@ h1 {
 
 .score-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 18px;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
 }
 
 .detail-layout,
@@ -209,7 +222,7 @@ h1 {
 }
 
 .match-hero {
-  padding: 20px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -218,12 +231,12 @@ h1 {
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  gap: 16px;
 }
 
 .stats-panel {
   min-width: 0;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -375,7 +388,7 @@ h1 {
 
 .side-panel {
   align-self: start;
-  padding: 18px;
+  padding: 16px;
 }
 
 .metric {
@@ -516,7 +529,7 @@ h1 {
 
 .matches {
   min-width: 0;
-  padding: 18px;
+  padding: 16px;
 }
 
 .section-head {
@@ -548,7 +561,7 @@ h1 {
 }
 
 .match-card {
-  padding: 16px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #101419;
@@ -584,8 +597,8 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
-  margin: 18px 0;
+  gap: 12px;
+  margin: 14px 0;
 }
 
 .team {
@@ -603,9 +616,9 @@ h1 {
 .team-mark {
   display: grid;
   place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   color: #07100d;
   font-size: 0.82rem;
@@ -634,7 +647,7 @@ h1 {
 
 .score strong {
   min-width: 24px;
-  font-size: 1.8rem;
+  font-size: 1.55rem;
   text-align: center;
 }
 
@@ -670,7 +683,7 @@ h1 {
     flex-direction: column;
   }
 
-  .account-panel {
+  .account-menu {
     width: 100%;
   }
 
